@@ -274,6 +274,8 @@ class LtfSessionTestCase(unittest.TestCase):
         for patcher in (
             # The launcher and bridge DLL path, on every platform
             patch.object(ltf_session, "NATIVE_BRIDGE", False),
+            # LTK Manager's Windows folders (settings beside its logs folder)
+            patch.object(ltk_data, "MACOS", False),
             patch.object(ltf_session, "LtkBridge", FakeBridge),
             patch.object(ltf_session, "find_bridge", return_value=(46321, {"pid": 777})),
             patch.object(ToolsManager, "detect_ltk_manager", return_value=self.root / "ltk-manager.exe"),

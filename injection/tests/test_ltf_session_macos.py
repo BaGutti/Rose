@@ -107,5 +107,29 @@ class MacOSLocationTests(unittest.TestCase):
         )
 
 
+
+class MacOSLtkSettingsTests(unittest.TestCase):
+    """macOS keeps LTK Manager's logs apart from its data (~/Library/Logs)."""
+
+    def test_ltk_managers_settings_are_read_from_its_data_folder(self):
+        import json
+        with tempfile.TemporaryDirectory() as root:
+            data = Path(root) / "Application Support" / "ltk"
+            logs = Path(root) / "Logs" / "ltk"
+            data.mkdir(parents=True)
+            logs.mkdir(parents=True)
+            (data / "settings.json").write_text(
+                json.dumps({"builtinMods": {"baseSkins": "allChampions"}}), encoding="utf-8"
+            )
+            report = MagicMock()
+            with patch.object(ltk_data, "MACOS", True), \
+                    patch.object(ltk_data, "ltk_data_dir", return_value=data), \
+                    patch.object(ltk_data.LtkLogTail, "log_dir", staticmethod(lambda: logs)), \
+                    patch.object(ltf_session, "report_issue", report):
+                ltf_session.LtfHost._check_ltk_builtins()
+
+        self.assertEqual(report.call_args.args[0], "LTK_HEAVY_BUILTINS")
+
+
 if __name__ == '__main__':
     unittest.main()

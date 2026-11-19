@@ -867,6 +867,10 @@ def main() -> None:
                 print(f"[Launcher] Unable to import launcher module: {err}")
             except Exception as err:  # noqa: BLE001
                 print(f"[Launcher] Launcher encountered an error: {err}")
+    elif args.download_skins:
+        # No launcher dialog off Windows: sync the skins it would have
+        from .setup.skin_sync import sync_skins_without_dialog
+        sync_skins_without_dialog()
 
     if not _check_dll_present():
         sys.exit(1)

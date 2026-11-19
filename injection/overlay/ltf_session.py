@@ -33,6 +33,7 @@ from ..tools.bridge import (
 from ..tools.tools_manager import LTF_BRIDGE_DLL, LTF_LAUNCHER, ToolsManager
 from .ltf_journal import KeptRecord, LibraryId, LibraryNames, LtfJournal
 from .ltf_report import LAUNCHER_INJECT_FAILED_MESSAGE, cdp_unreachable, report_ltf_failure
+from . import ltk_data
 from .ltk_data import LtkLogTail, entry_name
 from .ltk_switches import SavedModSwitches
 from .process_manager import LTK_MANAGER_PROCESSES
@@ -158,6 +159,15 @@ def _new_log_lines(sizes: Dict[Path, int]) -> List[str]:
             continue
         lines.extend(line.strip() for line in data.decode("utf-8", "replace").splitlines() if line.strip())
     return lines
+
+
+def _ltk_settings_dir() -> Optional[Path]:
+    """The folder of LTK Manager's settings.json: the one holding its logs
+    folder, except on macOS, where its logs are in ~/Library/Logs."""
+    if ltk_data.MACOS:
+        return ltk_data.ltk_data_dir()
+    logs = LtkLogTail.log_dir()
+    return logs.parent if logs is not None else None
 
 
 def heavy_builtin_mods(settings: dict) -> List[str]:
@@ -1024,11 +1034,11 @@ class LtfHost:
     def _check_ltk_builtins() -> None:
         """Warn (log and Troubleshooting) when LTK Manager's settings turn on a
         built-in mod that puts every champion's archive into the overlay."""
-        logs = LtkLogTail.log_dir()
-        if logs is None:
+        settings_dir = _ltk_settings_dir()
+        if settings_dir is None:
             return
         try:
-            settings = json.loads((logs.parent / "settings.json").read_text(encoding="utf-8"))
+            settings = json.loads((settings_dir / "settings.json").read_text(encoding="utf-8"))
         except (OSError, ValueError) as e:
             log.debug(f"[INJECT] Could not read LTK Manager's settings: {e}")
             return

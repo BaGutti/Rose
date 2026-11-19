@@ -24,6 +24,9 @@ log = get_logger()
 # undefined in cp1254, and the decode killed subprocess's reader thread (#478)
 SCHTASKS_OUTPUT = {"capture_output": True, "text": True, "encoding": "oem", "errors": "replace"}
 
+# Auto-start registers a Task Scheduler task
+AUTOSTART_WINDOWS_ONLY = "Auto-start is only available on Windows"
+
 
 def is_admin():
     """Check if the current process has administrator privileges"""
@@ -96,6 +99,8 @@ def is_registered_for_autostart():
     Returns:
         bool: True if registered, False otherwise
     """
+    if sys.platform != "win32":
+        return False
     try:
         # Only the exit code answers: the output is not read at all
         result = subprocess.run(
@@ -118,6 +123,8 @@ def register_autostart():
     Returns:
         tuple: (success: bool, message: str)
     """
+    if sys.platform != "win32":
+        return False, AUTOSTART_WINDOWS_ONLY
     if not is_admin():
         return False, "Administrator privileges required to register auto-start"
     
@@ -167,6 +174,8 @@ def unregister_autostart():
     Returns:
         tuple: (success: bool, message: str)
     """
+    if sys.platform != "win32":
+        return False, AUTOSTART_WINDOWS_ONLY
     if not is_admin():
         return False, "Administrator privileges required to unregister auto-start"
     
