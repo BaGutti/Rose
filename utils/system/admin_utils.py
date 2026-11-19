@@ -265,7 +265,12 @@ def ensure_admin_rights():
     If not, request elevation and exit.
     
     This should be called at the very start of the application.
+
+    Off Windows there is no UAC to elevate through: Rose runs as the user, and
+    the macOS patcher asks for root on its own when it starts.
     """
+    if sys.platform != "win32":
+        return
     if not is_admin():
         show_admin_required_dialog()
         request_admin_elevation()

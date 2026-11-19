@@ -209,7 +209,11 @@ def get_user_data_dir() -> Path:
         _cached_user_data_dir = Path.cwd() / "skins"
         return _cached_user_data_dir
 
-    else:  # Linux/macOS
+    elif sys.platform == "darwin":
+        _cached_user_data_dir = Path.home() / "Library" / "Application Support" / "Rose"
+        return _cached_user_data_dir
+
+    else:  # Linux
         # Use XDG_DATA_HOME or fallback to ~/.local/share
         xdg_data_home = os.environ.get("XDG_DATA_HOME")
         if xdg_data_home:

@@ -5,6 +5,7 @@ Initialization setup (logging and tray manager)
 """
 
 import logging
+import sys
 import time
 from typing import Optional
 
@@ -90,6 +91,11 @@ def convert_stored_mods(tray_manager: Optional[TrayManager]) -> None:
 
 def initialize_tray_manager(args: argparse.Namespace) -> Optional[TrayManager]:
     """Initialize the system tray manager"""
+    if sys.platform == "darwin":
+        # pystray's AppKit backend must own the main thread, and the tray runs
+        # on a background thread here: skip it rather than crash or hang
+        log.info("System tray is not supported on macOS yet: running without it")
+        return None
     try:
         # No callbacks yet: run_league_unlock sets them once the state exists
         # and replays a Quit or Restart clicked before

@@ -19,7 +19,11 @@ from utils.system.process_list import running_processes
 
 log = get_logger()
 
-_CLIENT_PROCESS_NAMES = frozenset({"leagueclient.exe", "leagueclientux.exe"})
+# Windows names, then the macOS ones (no extension)
+_CLIENT_PROCESS_NAMES = frozenset({
+    "leagueclient.exe", "leagueclientux.exe",
+    "leagueclient", "leagueclientux",
+})
 # The only process whose command line is read for LCU credentials
 _CREDENTIALS_PROCESS_NAME = "leagueclientux.exe"
 
