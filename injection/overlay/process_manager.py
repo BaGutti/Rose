@@ -109,9 +109,16 @@ class ProcessManager:
             log.debug("[INJECT] No active overlay process to stop")
 
     def kill_all_runoverlay_processes(self):
-        """Close the LTK Manager Rose started (for ChampSelect cleanup)"""
+        """Close the LTK Manager Rose started (for ChampSelect cleanup)
+
+        Except on macOS: its patcher host holds root between games, and a new
+        LTK Manager would ask for the administrator password again. Rose closes
+        it when it quits (kill_all_modtools_processes)."""
+        from . import ltf_session
+
         self._mark_stopped_by_rose()
-        self._close_rose_ltk_manager()
+        if not ltf_session.NATIVE_BRIDGE:
+            self._close_rose_ltk_manager()
         self.stop_overlay_process()
 
     def kill_all_modtools_processes(self):

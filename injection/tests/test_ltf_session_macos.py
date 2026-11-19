@@ -49,6 +49,18 @@ class MacOSManagerStartTests(LtfSessionTestCase):
         self.assertNotIn(4242, self.terminated)
         self.assertIn("stop_patcher", self.bridge.command_names())
 
+    def test_champ_select_cleanup_leaves_the_manager_open(self):
+        with patch.object(self.process_manager, "_close_rose_ltk_manager") as close:
+            self.process_manager.kill_all_runoverlay_processes()
+
+        close.assert_not_called()
+
+    def test_quitting_rose_still_closes_the_manager_it_started(self):
+        with patch.object(self.process_manager, "_close_rose_ltk_manager") as close:
+            self.process_manager.kill_all_modtools_processes()
+
+        close.assert_called_once()
+
     def test_the_next_game_reuses_the_open_manager(self):
         mod = self.make_mod()
         with patch.object(ltf_session, "find_bridge", return_value=None), \
