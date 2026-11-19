@@ -665,6 +665,12 @@ def run_league_unlock(args: Optional[argparse.Namespace] = None,
     # Setup logging and cleanup
     setup_logging_and_cleanup(args)
 
+    # No launcher dialog off Windows: sync the skins it would have, once the
+    # log is up so the download's progress shows
+    if sys.platform != "win32" and getattr(args, "download_skins", False):
+        from .setup.skin_sync import sync_skins_without_dialog
+        sync_skins_without_dialog()
+
     # Initialize system tray manager immediately to hide console
     tray_manager = initialize_tray_manager(args)
     
@@ -867,10 +873,6 @@ def main() -> None:
                 print(f"[Launcher] Unable to import launcher module: {err}")
             except Exception as err:  # noqa: BLE001
                 print(f"[Launcher] Launcher encountered an error: {err}")
-    elif args.download_skins:
-        # No launcher dialog off Windows: sync the skins it would have
-        from .setup.skin_sync import sync_skins_without_dialog
-        sync_skins_without_dialog()
 
     if not _check_dll_present():
         sys.exit(1)
