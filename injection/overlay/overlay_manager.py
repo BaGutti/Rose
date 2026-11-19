@@ -53,7 +53,7 @@ from .ltf_session import (
 )
 from .ltk_data import LtkLogTail, entry_name
 from config import (
-    GAME_EXECUTABLE_NAMES,
+    GAME_PROCESS_NAMES,
     PROCESS_MONITOR_SLEEP_S,
 )
 
@@ -1559,7 +1559,7 @@ class OverlayManager:
         """The game's process, if a game is running (either executable name)."""
         if not PSUTIL_AVAILABLE:
             return None
-        names = {name.lower() for name in GAME_EXECUTABLE_NAMES}
+        names = {name.lower() for name in GAME_PROCESS_NAMES}
         try:
             # Called every 50 ms while the game is held, and during the game
             for pid, name in running_processes():

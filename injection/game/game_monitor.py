@@ -29,11 +29,11 @@ except ImportError:
     NoSuchProcess = Exception
     AccessDenied = PermissionError
 
-from config import GAME_EXECUTABLE_NAMES
+from config import GAME_PROCESS_NAMES
 from utils.core.logging import get_logger
 
 log = get_logger()
-_GAME_PROCESS_NAMES = frozenset(name.lower() for name in GAME_EXECUTABLE_NAMES)
+_GAME_PROCESS_NAMES = frozenset(name.lower() for name in GAME_PROCESS_NAMES)
 # How long a match outlives a client that is gone: restarting the client and
 # reconnecting to the game takes well under it. Past it the client was closed
 # for good or reopened on its home screen, and the session ends (a game still

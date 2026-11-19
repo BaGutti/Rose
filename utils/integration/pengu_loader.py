@@ -594,8 +594,8 @@ def deactivate() -> bool:
 def restart_client() -> bool:
     """Use the regional-aware LCU connection and verify the restart response."""
     with _operation_lock:
-        from config import GAME_EXECUTABLE_NAMES
-        if _process_running(GAME_EXECUTABLE_NAMES):
+        from config import GAME_PROCESS_NAMES
+        if _process_running(GAME_PROCESS_NAMES):
             return False
         from lcu.core.lcu_connection import LCUConnection
         connection = LCUConnection()

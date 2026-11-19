@@ -25,7 +25,16 @@ log = logging.getLogger(__name__)
 
 APP_VERSION = "1.5.9"                           # Application version
 APP_USER_AGENT = f"Rose/{APP_VERSION}"  # User-Agent header for HTTP requests
-GAME_EXECUTABLE_NAMES = ("League of Legends.exe", "League of Legends (TM) Client.exe")
+if sys.platform == "darwin":
+    # Relative to the Game folder: the executable inside the game's app bundle
+    GAME_EXECUTABLE_NAMES = ("LeagueofLegends.app/Contents/MacOS/LeagueofLegends",)
+    # What the client folder holds (Contents/LoL in League of Legends.app)
+    CLIENT_EXECUTABLE_NAME = "LeagueClient.app"
+else:
+    GAME_EXECUTABLE_NAMES = ("League of Legends.exe", "League of Legends (TM) Client.exe")
+    CLIENT_EXECUTABLE_NAME = "LeagueClient.exe"
+# The game's process names: its executables' file names
+GAME_PROCESS_NAMES = tuple(Path(name).name for name in GAME_EXECUTABLE_NAMES)
 
 # Values are raw text: a '%' in a path must not be read as interpolation
 _CONFIG = configparser.ConfigParser(interpolation=None)

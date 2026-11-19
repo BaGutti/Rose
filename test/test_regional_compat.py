@@ -17,6 +17,9 @@ _path_patch = patch.object(paths, '_cached_user_data_dir', Path(_test_data.name)
 
 def setUpModule():
     _path_patch.start()
+    # These test the Windows layouts, on every platform
+    from injection.tests.windows_layout import pin_windows_game_layout
+    pin_windows_game_layout()
     unittest.addModuleCleanup(_test_data.cleanup)
     unittest.addModuleCleanup(_path_patch.stop)
 
@@ -24,7 +27,7 @@ def setUpModule():
 import config
 from injection.config.config_manager import ConfigManager
 from injection.game.game_detector import GameDetector
-from injection.game.game_monitor import _GAME_PROCESS_NAMES
+from injection.game import game_monitor
 from lcu.core import lockfile
 from lcu.core.lcu_connection import LCUConnection
 
@@ -305,9 +308,9 @@ class PathsAndEncodingTests(unittest.TestCase):
         self.assertEqual(self.manager.load_league_path(), 'E:/英雄联盟/Game')
 
     def test_both_process_names_recognized(self):
-        self.assertIn('league of legends.exe', _GAME_PROCESS_NAMES)
-        self.assertIn('league of legends (tm) client.exe', _GAME_PROCESS_NAMES)
-        self.assertNotIn('leagueclient.exe', _GAME_PROCESS_NAMES)
+        self.assertIn('league of legends.exe', game_monitor._GAME_PROCESS_NAMES)
+        self.assertIn('league of legends (tm) client.exe', game_monitor._GAME_PROCESS_NAMES)
+        self.assertNotIn('leagueclient.exe', game_monitor._GAME_PROCESS_NAMES)
 
 
 class ExternalPenguTests(unittest.TestCase):

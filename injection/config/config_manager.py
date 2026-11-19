@@ -9,7 +9,7 @@ import configparser
 from pathlib import Path
 from typing import Optional
 
-from config import get_config_file_path, read_config_file, write_config_file
+from config import CLIENT_EXECUTABLE_NAME, get_config_file_path, read_config_file, write_config_file
 from utils.core.logging import get_logger
 
 log = get_logger()
@@ -150,7 +150,7 @@ class ConfigManager:
             # If league path ends with "Game", client is the parent
             if league_dir.name == "Game":
                 client_dir = league_dir.parent
-                client_exe = client_dir / "LeagueClient.exe"
+                client_exe = client_dir / CLIENT_EXECUTABLE_NAME
                 if client_exe.exists():
                     return str(client_dir)
             
@@ -158,9 +158,9 @@ class ConfigManager:
             parent_dir = league_dir.parent
             # WeGame keeps Game and LeagueClient in sibling directories.
             regional_client_dir = parent_dir / "LeagueClient"
-            if (regional_client_dir / "LeagueClient.exe").is_file():
+            if (regional_client_dir / CLIENT_EXECUTABLE_NAME).is_file():
                 return str(regional_client_dir)
-            client_exe = parent_dir / "LeagueClient.exe"
+            client_exe = parent_dir / CLIENT_EXECUTABLE_NAME
             if client_exe.exists():
                 return str(parent_dir)
             

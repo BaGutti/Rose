@@ -7,6 +7,12 @@ import psutil
 
 from injection.overlay import overlay_manager
 from injection.overlay.overlay_manager import OverlayManager
+from injection.tests.windows_layout import pin_windows_game_layout
+
+
+def setUpModule():
+    # The game's Windows process names, on every platform
+    pin_windows_game_layout()
 
 
 class RunningGameTests(unittest.TestCase):

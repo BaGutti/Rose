@@ -5,8 +5,9 @@ Game Detector
 Handles detection of League of Legends game directory
 """
 
+import sys
 from pathlib import Path
-from config import GAME_EXECUTABLE_NAMES
+from config import CLIENT_EXECUTABLE_NAME, GAME_EXECUTABLE_NAMES
 from typing import Optional, Tuple
 
 # Import psutil with fallback for development environments
@@ -21,6 +22,27 @@ from utils.core.logging import get_logger, log_success
 from ..config.config_manager import ConfigManager
 
 log = get_logger()
+
+
+MACOS = sys.platform == "darwin"
+
+# The client's process names: Windows, then macOS (no extension)
+_CLIENT_PROCESS_NAMES = frozenset({
+    "leagueclient.exe", "leagueclientux.exe",
+    "leagueclient", "leagueclientux",
+})
+
+
+def _client_dir_of(executable: Path) -> Optional[Path]:
+    """The client folder of a client executable: its own folder on Windows;
+    on macOS the folder holding LeagueClient.app, up from the executable inside
+    an app bundle (Contents/LoL)."""
+    if not MACOS:
+        return executable.parent
+    for folder in executable.parents:
+        if (folder / CLIENT_EXECUTABLE_NAME).exists():
+            return folder
+    return None
 
 
 class GameDetector:
@@ -47,7 +69,7 @@ class GameDetector:
             client_dir = Path(config_client_path)
             
             if (league_dir.exists() and any((league_dir / name).is_file() for name in GAME_EXECUTABLE_NAMES) and
-                client_dir.exists() and (client_dir / "LeagueClient.exe").exists()):
+                client_dir.exists() and (client_dir / CLIENT_EXECUTABLE_NAME).exists()):
                 log_success(log, f"Using paths from config: league={league_dir}, client={client_dir}", "")
                 return league_dir, client_dir
             else:
@@ -85,17 +107,17 @@ class GameDetector:
             # Find LeagueClient.exe process
             for proc in psutil.process_iter(['pid', 'name', 'exe']):
                 try:
-                    if (proc.info.get('name') or '').lower() in {'leagueclient.exe', 'leagueclientux.exe'}:
+                    if (proc.info.get('name') or '').lower() in _CLIENT_PROCESS_NAMES:
                         exe_path = proc.info['exe']
                         if exe_path:
                             log.debug(f"Found LeagueClient.exe at: {exe_path}")
                             
                             # Convert to Path and get parent directory
                             client_path = Path(exe_path)
-                            client_dir = client_path.parent
+                            client_dir = _client_dir_of(client_path)
                             
-                            # Verify client directory has LeagueClient.exe
-                            if not (client_dir / "LeagueClient.exe").exists():
+                            # Verify client directory has LeagueClient
+                            if client_dir is None or not (client_dir / CLIENT_EXECUTABLE_NAME).exists():
                                 continue
                             
                             # League should be in the same directory + "Game" subdirectory
