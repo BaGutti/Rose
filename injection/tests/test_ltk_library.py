@@ -28,6 +28,17 @@ from injection.tests.test_ltf_session import FakeBridge, LtfSessionTestCase
 from injection.tools.bridge import BridgeCommandError
 from injection.tools.tools_manager import ToolsManager
 
+# LTK Manager's Windows data folders, on every platform
+_windows_folders = patch.object(ltk_data, "MACOS", False)
+
+
+def setUpModule():
+    _windows_folders.start()
+
+
+def tearDownModule():
+    _windows_folders.stop()
+
 VO_ID = "5e9b2219-f49f-4cf1-bc7e-774fb43e1349"
 AATROX_ID = "d6f841c7-140b-4ac2-a11c-b37e18eb8006"
 LOOSE_ID = "799b6c82-8324-4394-a0cf-ddebcd16eba7"

@@ -272,6 +272,8 @@ class LtfSessionTestCase(unittest.TestCase):
         self.resolve_issue = MagicMock()
 
         for patcher in (
+            # The launcher and bridge DLL path, on every platform
+            patch.object(ltf_session, "NATIVE_BRIDGE", False),
             patch.object(ltf_session, "LtkBridge", FakeBridge),
             patch.object(ltf_session, "find_bridge", return_value=(46321, {"pid": 777})),
             patch.object(ToolsManager, "detect_ltk_manager", return_value=self.root / "ltk-manager.exe"),

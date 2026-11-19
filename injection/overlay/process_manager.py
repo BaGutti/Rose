@@ -29,7 +29,7 @@ log = get_logger()
 
 # LTK Manager, which hosts the bridge DLL and runs the patcher (lowercase:
 # process names are compared lowercased)
-LTK_MANAGER_PROCESSES = ("ltk-manager.exe", "ltk manager.exe")
+LTK_MANAGER_PROCESSES = ("ltk-manager.exe", "ltk manager.exe", "ltk-manager")
 
 
 class ProcessManager:

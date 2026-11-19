@@ -3,11 +3,23 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from injection.tools import tools_manager
 from injection.tools.tools_manager import (
     LTF_BRIDGE_DLL,
     LTF_LAUNCHER,
     ToolsManager,
 )
+
+# These test the Windows install layout, on every platform
+_windows_layout = patch.object(tools_manager, "MACOS", False)
+
+
+def setUpModule():
+    _windows_layout.start()
+
+
+def tearDownModule():
+    _windows_layout.stop()
 
 
 class LtfLauncherDetectionTests(unittest.TestCase):

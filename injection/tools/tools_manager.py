@@ -6,6 +6,7 @@ Detects the injection runtime Rose ships (the LTF bridge, built from
 native/ltf/) and the LTK Manager install it drives.
 """
 
+import sys
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -21,10 +22,28 @@ LTF_BRIDGE_DLL = "LeagueToolFlop.dll"
 LTK_MANAGER_DEFAULT_DIR = "LTK Manager"
 LTK_MANAGER_EXECUTABLES = ("ltk-manager.exe", "LTK Manager.exe")
 
+# macOS: the binary inside the app bundle, unofficial build first. Its LTK
+# Manager serves the bridge itself, so Rose ships no runtime there
+MACOS = sys.platform == "darwin"
+MACOS_LTK_MANAGER_EXECUTABLES = ("ltk-manager",)
+MACOS_LTK_MANAGER_APPS = ("LTK Manager Unofficial.app", "LTK Manager.app")
+
+
+def ltk_manager_executables() -> tuple:
+    """The file names LTK Manager's executable has on this platform."""
+    return MACOS_LTK_MANAGER_EXECUTABLES if MACOS else LTK_MANAGER_EXECUTABLES
+
 
 def ltk_manager_install_dirs() -> list[Path]:
     """The directories LTK Manager installs itself to, most likely first."""
     import os
+
+    if MACOS:
+        return [
+            applications / app / "Contents" / "MacOS"
+            for applications in (Path("/Applications"), Path.home() / "Applications")
+            for app in MACOS_LTK_MANAGER_APPS
+        ]
 
     dirs: list[Path] = []
     for variable in ("ProgramW6432", "ProgramFiles", "LOCALAPPDATA"):
@@ -88,6 +107,9 @@ class ToolsManager:
 
     def check_tools_available(self) -> bool:
         """Check if the injection runtime Rose ships is present."""
+        if MACOS:
+            # The macOS LTK Manager serves the bridge itself: no runtime to ship
+            return True
         if self.detect_ltf_launcher() is None:
             log.warning(f"Missing injection runtime in {self.tools_dir}: {LTF_LAUNCHER} + {LTF_BRIDGE_DLL}")
             log.warning("Reinstall Rose, or allow its files through your antivirus.")
@@ -128,7 +150,7 @@ class ToolsManager:
             return running
 
         for directory in ltk_manager_install_dirs():
-            for name in LTK_MANAGER_EXECUTABLES:
+            for name in ltk_manager_executables():
                 candidate = directory / name
                 if candidate.exists():
                     log.info(f"[INJECT] LTK Manager found at {_with_version(candidate)}")
@@ -156,7 +178,7 @@ class ToolsManager:
             import psutil
         except ImportError:
             return None
-        for name in LTK_MANAGER_EXECUTABLES:
+        for name in ltk_manager_executables():
             try:
                 for proc in psutil.process_iter(["name"]):
                     if (proc.info.get("name") or "").lower() == name.lower():

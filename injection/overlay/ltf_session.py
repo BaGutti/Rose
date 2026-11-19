@@ -39,6 +39,10 @@ from .process_manager import LTK_MANAGER_PROCESSES
 
 log = get_logger()
 
+# The macOS LTK Manager serves the bridge itself: Rose starts it directly,
+# with no launcher or bridge DLL
+NATIVE_BRIDGE = sys.platform == "darwin"
+
 BRIDGE_REQUEST_LINE_CAP_BYTES = 64 * 1024 * 1024
 BASE64_PAYLOAD_CAP_BYTES = BRIDGE_REQUEST_LINE_CAP_BYTES // 4 * 3
 REQUEST_ENVELOPE_BYTES = 8 * 1024 * 1024
@@ -354,8 +358,9 @@ class LtfHost:
         self.last_failure_reason = None
         tools_manager = ToolsManager(self.tools_dir)
 
-        launcher = tools_manager.detect_ltf_launcher()
-        if launcher is None:
+        native_bridge = NATIVE_BRIDGE
+        launcher = None if native_bridge else tools_manager.detect_ltf_launcher()
+        if launcher is None and not native_bridge:
             self.last_failure_reason = MissingComponent.LTF_BRIDGE
             log.error(f"[INJECT] Missing LTF bridge in {self.tools_dir}: {LTF_LAUNCHER} + {LTF_BRIDGE_DLL}")
             if report:
@@ -1102,9 +1107,12 @@ class LtfHost:
         self.last_failure_reason = reason
         report_ltf_failure(reason, report)
 
-    def _connect_bridge(self, launcher: Path, manager: Path, report: bool,
+    def _connect_bridge(self, launcher: Optional[Path], manager: Path, report: bool,
                         cancelled: Optional[Callable[[], bool]] = None):
-        """The bridge and whether Rose started LTK Manager for it."""
+        """The bridge and whether Rose started LTK Manager for it.
+
+        Without a launcher (macOS), LTK Manager is started directly: it
+        serves the bridge itself."""
         found = find_bridge()
         if found is not None:
             port, hello = found
@@ -1122,6 +1130,9 @@ class LtfHost:
             log.warning("[INJECT] LTK Manager is already open without Rose's bridge - leaving it alone")
             self._session_failed(ALREADY_OPEN_REASON, report)
             return None, False
+
+        if launcher is None:
+            return self._start_native_manager(manager, report, cancelled)
 
         log.info(f"[INJECT] Starting LTK Manager through {launcher.name}")
         creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
@@ -1171,9 +1182,32 @@ class LtfHost:
 
         match = re.search(r"LTK_MANAGER_PID=(\d+)", result.stdout or "")
         hidden_manager_pid = int(match.group(1)) if match else None
+        return self._await_bridge(hidden_manager_pid, report, cancelled)
+
+    def _start_native_manager(self, manager: Path, report: bool,
+                              cancelled: Optional[Callable[[], bool]] = None):
+        """Start an LTK Manager that serves the bridge itself (macOS)."""
+        log.info(f"[INJECT] Starting LTK Manager: {manager}")
+        try:
+            process = subprocess.Popen(
+                [str(manager)],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError as e:
+            self._session_failed(f"could not start LTK Manager ({e})", report)
+            return None, False
+        return self._await_bridge(process.pid, report, cancelled)
+
+    def _await_bridge(self, manager_pid: Optional[int], report: bool,
+                      cancelled: Optional[Callable[[], bool]] = None):
+        """Wait for the bridge of the LTK Manager Rose just started; stop it
+        when its bridge never comes up."""
         try:
             bridge = LtkBridge.wait_for_bridge(
-                timeout=BRIDGE_START_TIMEOUT_S, expected_pid=hidden_manager_pid, cancelled=cancelled
+                timeout=BRIDGE_START_TIMEOUT_S, expected_pid=manager_pid, cancelled=cancelled
             )
         except BridgeUnavailable as e:
             reason = f"the LTF bridge is unreachable ({e})"
@@ -1182,8 +1216,8 @@ class LtfHost:
                 log.debug("[INJECT] Stopped waiting for the LTF bridge: the session is no longer wanted")
             else:
                 self._session_failed(reason, report)
-            self._terminate_manager(hidden_manager_pid)
+            self._terminate_manager(manager_pid)
             return None, False
-        self._register_manager(bridge.pid or hidden_manager_pid)
+        self._register_manager(bridge.pid or manager_pid)
         self._wait_for_cdp(bridge, cancelled)
         return bridge, True

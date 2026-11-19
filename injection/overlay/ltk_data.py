@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional
@@ -23,10 +24,19 @@ LTK_SETTINGS = "settings.json"
 LIBRARY_INDEX_VERSION = 2
 
 
+# The unofficial macOS LTK Manager has its own bundle identifier; an official
+# macOS build would use the Windows one
+MACOS = sys.platform == "darwin"
+MACOS_LTK_DATA_FOLDERS = ("io.github.bagutti.ltk-manager-macos", LTK_DATA_FOLDER)
+
+
 def ltk_data_candidates() -> List[Path]:
     """Where LTK Manager may keep its data: the roaming app data of the
     desktop user it runs as first (an elevated Rose may run as another
-    account), then this account's."""
+    account), then this account's. On macOS, Application Support."""
+    if MACOS:
+        support = Path.home() / "Library" / "Application Support"
+        return [support / folder for folder in MACOS_LTK_DATA_FOLDERS]
     candidates = []
     try:
         from utils.core.paths import get_user_data_dir
@@ -38,6 +48,15 @@ def ltk_data_candidates() -> List[Path]:
     if roaming:
         candidates.append(Path(roaming) / LTK_DATA_FOLDER)
     return candidates
+
+
+def ltk_log_candidates() -> List[Path]:
+    """Where LTK Manager may write its logs: a logs folder in its data folder,
+    or on macOS ~/Library/Logs/<bundle identifier>."""
+    if MACOS:
+        logs = Path.home() / "Library" / "Logs"
+        return [logs / folder for folder in MACOS_LTK_DATA_FOLDERS]
+    return [data_dir / "logs" for data_dir in ltk_data_candidates()]
 
 
 def ltk_data_dir() -> Optional[Path]:
@@ -190,8 +209,7 @@ class LtkLogTail:
     def log_dir() -> Optional[Path]:
         """LTK Manager's log folder: in the roaming app data of the desktop
         user it runs as (an elevated Rose may run as another account)."""
-        for data_dir in ltk_data_candidates():
-            candidate = data_dir / "logs"
+        for candidate in ltk_log_candidates():
             if candidate.is_dir():
                 return candidate
         return None
