@@ -34,9 +34,35 @@ class MacOSManagerStartTests(LtfSessionTestCase):
         launcher.assert_not_called()
         self.assertEqual(popen.call_args.args[0], [str(self.root / "ltk-manager.exe")])
         self.assertIn(("wait_for_bridge", 4242), FakeBridge.created[0].calls)
-        self.assertIn("kill", self.bridge.command_names())
         self.assertEqual(self.state()["manager"]["pid"], 4242)
         self.assertNotIn("LTF_MISSING", self.reported_codes())
+
+    def test_the_manager_stays_open_after_the_game(self):
+        # Its patcher host keeps root between games: closing it would ask for
+        # the administrator password again at the next one
+        mod = self.make_mod()
+        with patch.object(ltf_session, "find_bridge", return_value=None), \
+                patch.object(ltf_session.subprocess, "Popen", return_value=MagicMock(pid=4242)):
+            self.overlay.mk_run_overlay([mod], stop_callback=lambda: True)
+
+        self.assertNotIn("kill", self.bridge.command_names())
+        self.assertNotIn(4242, self.terminated)
+        self.assertIn("stop_patcher", self.bridge.command_names())
+
+    def test_the_next_game_reuses_the_open_manager(self):
+        mod = self.make_mod()
+        with patch.object(ltf_session, "find_bridge", return_value=None), \
+                patch.object(ltf_session.subprocess, "Popen", return_value=MagicMock(pid=4242)):
+            self.overlay.mk_run_overlay([mod], stop_callback=lambda: True)
+
+        mod = self.make_mod()
+        with patch.object(ltf_session, "find_bridge", return_value=(46321, {"pid": 4242})), \
+                patch.object(ltf_session.subprocess, "Popen") as popen:
+            result = self.overlay.mk_run_overlay([mod], stop_callback=lambda: True)
+
+        self.assertEqual(result, 0)
+        popen.assert_not_called()
+        self.assertNotIn("kill", self.bridge.command_names())
 
     def test_a_manager_that_never_serves_its_bridge_is_stopped(self):
         mod = self.make_mod()

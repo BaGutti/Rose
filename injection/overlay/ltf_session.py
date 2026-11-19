@@ -494,7 +494,11 @@ class LtfHost:
                 log.debug(f"[INJECT] Could not turn {mod_id} back on in LTK Manager: {e}")
         self.journal.untrack(removed, restored)
 
-        if session.rose_started_manager:
+        if session.rose_started_manager and NATIVE_BRIDGE:
+            # The macOS manager's patcher host holds root between games:
+            # closing it would ask for the administrator password again
+            log.debug("[INJECT] Leaving LTK Manager open for the next game")
+        elif session.rose_started_manager:
             bridge.kill()
             self._terminate_manager(bridge.pid, grace_s=EXIT_GRACE_BEFORE_NEXT_SESSION_S)
 
